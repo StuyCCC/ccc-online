@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>StuyCCC</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&family=Open+Sans&display=swap" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+        integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+
+    <!--CONSIDER MIGRATING TO PYODIDE - supports a full featured python 3 interpreter.-->
+    <script src="http://www.skulpt.org/js/skulpt.min.js" type="text/javascript"></script>
+    <script src="http://www.skulpt.org/js/skulpt-stdlib.js" type="text/javascript"></script>
+
+    <script src="js/codemirror.js"></script>
+    <script src="js/python.js"></script>
+
+    <link href="css/codemirror.css" rel="stylesheet">
+    <link href="css/base16-dark.css" rel="stylesheet">
+
+    <link href="css/main.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <p>Some text that describes the code.</p>
+            </div>
+            <div class="col">
+                <div class="row-fluid" style="background:#151515;">
+                    <button type="button" class="btn btn-success shadow-none rounded-0" onclick='runit()'>Run</button>
+                </div>
+                <textarea id="code">print("Hello World")</textarea>
+                <script>
+                    var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+                        mode: {
+                            name: "python",
+                            version: 3,
+                            singleLineStringErrors: false
+                        },
+                        lineNumbers: true,
+                        indentUnit: 4,
+                        matchBrackets: true,
+                        theme: 'base16-dark'
+                    });
+                    $('#code').data('CodeMirrorInstance', editor);
+                    //Make sure that tabs & spaces are consistent
+                    editor.setOption("extraKeys", {
+                        Tab: function (cm) {
+                            var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
+                            cm.replaceSelection(spaces);
+                        }
+                    });
+                </script>
+                <pre id="output"></pre>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        function outf(text) {
+            $('#output').append(text);
+        }
+        function builtinRead(x) {
+            if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+                throw "File not found: '" + x + "'";
+            return Sk.builtinFiles["files"][x];
+        }
+        function runit() {
+            //reset output
+            $('#output').html('');
+            //fetch program from codemirror editor
+            var program = $('#code').data('CodeMirrorInstance').getValue();
+            Sk.pre = "output";
+            Sk.python3 = true;
+            Sk.configure({ output: outf, read: builtinRead });
+            (Sk.TurtleGraphics || (Sk.TurtleGraphics = {})).target = 'mycanvas';
+            var myPromise = Sk.misceval.asyncToPromise(function () {
+                return Sk.importMainWithBody("<stdin>", false, program, true);
+            });
+            myPromise.then(function (mod) { },
+                function (err) {
+                    outf(err.toString());
+                });
+        } 
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+        integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+        integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
