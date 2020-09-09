@@ -15,9 +15,38 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
         integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
 
-    <!--CONSIDER MIGRATING TO PYODIDE - supports a full featured python 3 interpreter.-->
-    <script src="http://www.skulpt.org/js/skulpt.min.js" type="text/javascript"></script>
-    <script src="http://www.skulpt.org/js/skulpt-stdlib.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        /* 
+        *  For creating a python 3(+) environment in the web browser, we are using pyodide.
+        *  Pyodide is a web-assembly based python interpreter that can even load any python package, such as numpy or matplotlib.
+        *  Currently, pyodide is running in a web worker on a separate thread, which means DOM access is limited. Consider switching to 
+        *  run on the main thread and use pyodide.runPythonAsync instead, if it proves to be significantly more powerful.
+        */
+        window.pyodideWorker = new Worker('js/webworker.js')
+        window.formatOutput = function (text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        pyodideWorker.onerror = (e) => {
+            $('#output').append(formatOutput(`Error at line ${e.lineno}: ${e.message}`));
+        }
+        pyodideWorker.onmessage = (e) => {
+            const { results, error, message } = e.data
+            console.log(e.data)
+            if (results) {
+                // TODO: Stringify raw python objects in a more pythonic way (e.g. using repr() from python on the real python object.)
+                $('#output').append(String(results));
+            } else if (message) {
+                $('#output').append(formatOutput(message));
+            } else if (error) {
+                $('#output').append(formatOutput(error));
+            }
+        }
+    </script>
 
     <script src="js/codemirror.js"></script>
     <script src="js/python.js"></script>
@@ -36,10 +65,12 @@
             </div>
             <div class="col">
                 <div class="row-fluid" style="background:#151515;">
-                    <button type="button" class="btn btn-success shadow-none rounded-0" onclick='runit()'>Run</button>
+                    <button type="button" class="btn btn-success shadow-none rounded-0"
+                        onclick='runPython()'>Run</button>
                 </div>
                 <textarea id="code">print("Hello World")</textarea>
                 <script>
+                    // Creates the code editor from a target textarea using the CodeMirror library.
                     var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
                         mode: {
                             name: "python",
@@ -65,30 +96,15 @@
         </div>
     </div>
     <script type="text/javascript">
-        function outf(text) {
-            $('#output').append(text);
-        }
-        function builtinRead(x) {
-            if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
-                throw "File not found: '" + x + "'";
-            return Sk.builtinFiles["files"][x];
-        }
-        function runit() {
+        function runPython() {
             //reset output
             $('#output').html('');
-            //fetch program from codemirror editor
+            //fetch program from CodeMirror editor
             var program = $('#code').data('CodeMirrorInstance').getValue();
-            Sk.pre = "output";
-            Sk.python3 = true;
-            Sk.configure({ output: outf, read: builtinRead });
-            (Sk.TurtleGraphics || (Sk.TurtleGraphics = {})).target = 'mycanvas';
-            var myPromise = Sk.misceval.asyncToPromise(function () {
-                return Sk.importMainWithBody("<stdin>", false, program, true);
-            });
-            myPromise.then(function (mod) { },
-                function (err) {
-                    outf(err.toString());
-                });
+            const data = {
+                python: program
+            }
+            window.pyodideWorker.postMessage(data)
         } 
     </script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
