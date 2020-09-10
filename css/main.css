@@ -1,6 +1,6 @@
-*{
+p h1 h2 h3 h4 {
     font-family: 'Open Sans', sans-serif;
 }
-#editor{
+.CodeMirror{
     font-family: 'Fira Code', monospace;
 }
