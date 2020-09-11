@@ -1,6 +1,11 @@
-p h1 h2 h3 h4 {
+html,body{
+    height: 100%;
+    width: 100%;
+}
+
+p, h1, h2, h3, h4 {
     font-family: 'Open Sans', sans-serif;
 }
-.CodeMirror{
+.CodeMirror, #output{
     font-family: 'Fira Code', monospace;
 }
