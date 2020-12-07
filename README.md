@@ -1,2 +1,2 @@
 # ccc-online
-Site for Stuyvesant Competitive Computing Club, for use during remote learning.
+Directory of Jupyter Notebooks used for creating StuyCCC lessons
